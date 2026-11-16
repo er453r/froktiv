@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Radio Control</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, sans-serif;
+      }
+
+      body {
+        box-sizing: border-box;
+        margin: 0 auto;
+        max-width: 36rem;
+        padding: 2rem 1rem;
+      }
+
+      form, .control-row {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      input, button, select {
+        box-sizing: border-box;
+        font: inherit;
+        padding: 0.5rem;
+      }
+
+      .volume-row {
+        align-items: center;
+        display: flex;
+        gap: 0.75rem;
+      }
+
+      .status-panel {
+        border: 1px solid currentColor;
+        border-radius: 0.5rem;
+        margin-top: 1rem;
+        padding: 0.75rem;
+      }
+
+      .status-panel p {
+        margin: 0.25rem 0;
+      }
+
+      #volume-slider {
+        flex: 1;
+      }
+
+      #status {
+        min-height: 1.5em;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Radio Control</h1>
+      <form id="radio-form">
+        <label for="radio-ip">Radio IPv4 address</label>
+        <input id="radio-ip" name="host" type="text" inputmode="decimal" autocomplete="off" placeholder="192.168.1.50">
+
+        <label for="radio-pin">Radio PIN</label>
+        <input id="radio-pin" name="pin" type="password" value="1234" autocomplete="off">
+
+        <button id="poll-toggle" type="button" disabled>Pause polling</button>
+
+        <span>Power</span>
+        <div class="control-row">
+          <button id="power-toggle" type="button" disabled hidden>Turn off</button>
+          <button id="power-on" type="button" disabled hidden>On</button>
+          <button id="power-off" type="button" disabled hidden>Off</button>
+        </div>
+
+        <label for="mode-select">Mode</label>
+        <select id="mode-select" disabled hidden></select>
+        <div id="mode-fallback" class="control-row">
+          <label for="mode-number">Mode number</label>
+          <input id="mode-number" type="number" min="0" step="1" value="0" disabled>
+          <button id="mode-set" type="button" disabled>Set mode</button>
+        </div>
+
+        <label for="volume-slider">Volume</label>
+        <div class="volume-row">
+          <input id="volume-slider" type="range" min="0" max="20" step="1" value="0" disabled>
+          <output id="volume-value" for="volume-slider">0</output>
+        </div>
+      </form>
+      <p id="status" role="status" aria-live="polite">Enter a valid IPv4 address to enable controls.</p>
+      <section class="status-panel" aria-label="Radio status">
+        <p>Power: <span id="power-status">Unknown</span></p>
+        <p>Mode: <span id="mode-status">Unknown</span></p>
+        <p>Radio volume: <span id="radio-volume-status">Unknown</span></p>
+        <p>Last checked: <span id="last-checked">—</span></p>
+      </section>
+      <p class="hint">Status replies are read when the radio allows browser access; if CORS blocks details, the page uses a reachability probe.</p>
+      <p class="hint">Open this page from file:// or http://localhost; an HTTPS page cannot call the radio's plain-HTTP API.</p>
+    </main>
+    <!--APP_SCRIPT-->
+  </body>
+</html>
