@@ -1,7 +1,8 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
+import { writeIcons } from './icon.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const htmlPath = join(root, 'src/index.html');
@@ -37,3 +38,15 @@ const page = html
   .replace(versionMarker, () => version)
   .replace(marker, () => `<script>${bundle}</script>`);
 await writeFile(outputPath, page);
+await copyFile(join(root, 'src/icon.svg'), join(root, 'dist/icon.svg'));
+await writeIcons(join(root, 'dist'));
+await copyFile(join(root, 'src/manifest.webmanifest'), join(root, 'dist/manifest.webmanifest'));
+await build({
+  entryPoints: [join(root, 'src/sw.ts')],
+  bundle: true,
+  format: 'iife',
+  minify: true,
+  target: 'es2020',
+  define: { __APP_VERSION__: JSON.stringify(version) },
+  outfile: join(root, 'dist/sw.js')
+});

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.sw.json",
     "build": "node scripts/build.mjs",
     "test": "node scripts/test.mjs",
     "version": "node scripts/version.mjs && git add CHANGELOG.md"

@@ -6,6 +6,8 @@
 - Dockerfile that builds the page and serves it with a small nginx web server.
 - The app version is shown next to the page title.
 - `npm version patch|minor|major` bumps the version and moves these "Unreleased" notes under the new version.
+- Installable PWA with an offline app shell and a new radio icon.
+- The radio IP and PIN are remembered between visits, with storage behavior covered by unit tests.
 
 ## [2.0.0] - 2026-11-16
 

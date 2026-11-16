@@ -10,7 +10,9 @@ import type { RadioMode } from './fsapiXml.js';
 import { getRadioStatus, type RadioStatus } from './radioStatus.js';
 import { createPoller } from './poller.js';
 import { clampVolume, isValidHost } from './validation.js';
+import { hostStorageKey, pinStorageKey, readStoredValue, saveStoredValue, type KeyValueStore } from './storage.js';
 import { throttleTrailing } from './throttle.js';
+import { canRegisterServiceWorker } from './pwa.js';
 
 function requireElement<T extends HTMLElement>(selector: string): T {
   const element = document.querySelector<T>(selector);
@@ -38,8 +40,6 @@ const modeStatus = requireElement<HTMLSpanElement>('#mode-status');
 const radioVolumeStatus = requireElement<HTMLSpanElement>('#radio-volume-status');
 const lastChecked = requireElement<HTMLSpanElement>('#last-checked');
 
-const hostStorageKey = 'radio-host';
-const pinStorageKey = 'radio-pin';
 let statusVersion = 0;
 let lastVolumeInputAt = Number.NEGATIVE_INFINITY;
 let maxVolume = 20;
@@ -53,28 +53,21 @@ let modeListRequestedFor: string | null = null;
 let radioModes: RadioMode[] = [];
 let selectableModes: RadioMode[] = [];
 
-function readStoredValue(key: string): string | null {
+function getStorage(): KeyValueStore | null {
   try {
-    return window.localStorage.getItem(key);
+    return window.localStorage;
   } catch {
     return null;
   }
 }
 
-function saveStoredValue(key: string, value: string): void {
-  try {
-    window.localStorage.setItem(key, value);
-  } catch {
-    // The page remains usable when storage is unavailable, such as in restricted file contexts.
-  }
-}
-
-const storedHost = readStoredValue(hostStorageKey);
+const storage = getStorage();
+const storedHost = readStoredValue(storage, hostStorageKey);
 if (storedHost !== null) {
   hostInput.value = storedHost;
 }
 
-const storedPin = readStoredValue(pinStorageKey);
+const storedPin = readStoredValue(storage, pinStorageKey);
 if (storedPin !== null) {
   pinInput.value = storedPin;
 }
@@ -291,13 +284,13 @@ function updateControls(): void {
 }
 
 hostInput.addEventListener('input', () => {
-  saveStoredValue(hostStorageKey, hostInput.value);
+  saveStoredValue(storage, hostStorageKey, hostInput.value);
   resetModeListForHost(hostInput.value.trim());
   updateControls();
 });
 
 pinInput.addEventListener('input', () => {
-  saveStoredValue(pinStorageKey, pinInput.value);
+  saveStoredValue(storage, pinStorageKey, pinInput.value);
   updateControls();
 });
 
@@ -408,3 +401,7 @@ volumeSlider.addEventListener('input', () => {
 volumeValue.textContent = volumeSlider.value;
 updatePowerControls();
 updateControls();
+
+if (canRegisterServiceWorker(location.protocol, 'serviceWorker' in navigator)) {
+  void navigator.serviceWorker.register('./sw.js').catch(() => undefined);
+}

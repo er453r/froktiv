@@ -4,7 +4,7 @@ Guidance for AI agents and contributors working on this project.
 
 ## Project summary
 
-A single, self-contained HTML page, written in strict TypeScript, that controls a **Frontier Silicon** Wi-Fi radio on the local network. `npm run build` produces one file, `dist/index.html`, with the script inlined. There is no server and there are no runtime dependencies.
+A web app, written in strict TypeScript, that controls a **Frontier Silicon** Wi-Fi radio on the local network. `npm run build` inlines app code into `dist/index.html` and also emits a manifest, service worker and icons for PWA installation. There are no runtime dependencies; PWA installation requires serving it from a secure origin such as `http://localhost`.
 
 ## Background and decisions
 
@@ -21,6 +21,7 @@ A single, self-contained HTML page, written in strict TypeScript, that controls 
 - **XML is parsed with small regex helpers, not `DOMParser`**, so parsing can be unit-tested in Node. Parsers never throw; malformed input returns `null` or `[]`.
 - **Mode keys differ between models.** Always read them from `netRemote.sys.caps.validModes`; never hardcode them.
 - **UI choices (by the user):** a single power toggle (On/Off buttons only when power is unknown), a mode dropdown from the radio (number input fallback), and polling with a CORS fallback.
+- **PWA:** `manifest.webmanifest` and the service worker are served beside `index.html`. The worker precaches the app shell and only handles same-origin GET requests; radio FSAPI requests are cross-origin and must never be intercepted.
 
 ## FSAPI nodes used
 
@@ -49,7 +50,12 @@ Status mapping: HTTP 403 or `FS_PACKET_BAD` means the PIN was rejected. Other no
 
 ```
 src/index.html      # markup, CSS and the <!--APP_SCRIPT--> placeholder
-src/main.ts         # the only module that touches the DOM: wiring, localStorage, rendering
+src/main.ts         # the only module that touches the DOM: wiring, storage, rendering, SW registration
+src/storage.ts      # guarded localStorage helpers and radio host/PIN keys
+src/pwa.ts          # app-shell file list and pure service-worker helper functions
+src/sw.ts           # service worker: install precache, version cleanup, same-origin GET handling
+src/manifest.webmanifest # PWA name, scope, theme and icon declarations
+src/icon.svg        # master SVG app icon
 src/fsapi.ts        # buildFsapiUrl, checkHealth, fsapiGetNumber, getModes, setPower, setMode, setVolume
 src/fsapiXml.ts     # parseFsapiStatus, parseFsapiValue, parseModeList
 src/radioStatus.ts  # getRadioStatus with the CORS fallback
@@ -57,10 +63,13 @@ src/poller.ts       # createPoller: generic, non-overlapping interval poller
 src/validation.ts   # isValidHost (IPv4 + optional port), clampVolume
 src/throttle.ts     # throttleTrailing
 scripts/build.mjs   # esbuild bundle (IIFE, minified) inlined into dist/index.html
+scripts/icon.mjs    # dependency-free SVG-matched PNG rasterizer and encoder
 scripts/test.mjs    # bundles tests/*.test.ts with esbuild and runs node --test
 scripts/changelog.mjs # releaseChangelog / latestReleasedVersion helpers (tested)
 scripts/version.mjs # npm "version" hook: moves CHANGELOG "Unreleased" notes to the new version
 tests/*.test.ts     # node:test unit tests with a mocked fetch
+tsconfig.sw.json    # strict WebWorker type check for src/sw.ts
+nginx.default.conf  # static serving rules, including the webmanifest MIME type
 ```
 
 Functions that do network requests take an optional `fetchFn` so tests can pass a mock.
@@ -69,7 +78,8 @@ Functions that do network requests take an optional `fetchFn` so tests can pass 
 
 - TypeScript `strict`, `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`. Keep `npm run typecheck` clean.
 - No runtime dependencies. Dev dependencies are only `typescript` and `esbuild`.
-- Keep the output a single self-contained `dist/index.html` with no external references.
+- Keep app logic and styling inlined in `dist/index.html`; other `dist/` files are limited to the required PWA manifest, service worker and icons. Do not load external assets.
+- The service worker may handle only same-origin GET requests. Never intercept cross-origin radio FSAPI requests.
 - Keep DOM access in `main.ts`. Keep FSAPI, parsing and polling logic pure and testable.
 - Two-space indentation, single quotes, ES modules with `.js` import suffixes in `src/`.
 - Add a short, human-readable entry under `## [Unreleased]` in `CHANGELOG.md` for user-visible changes.
@@ -79,9 +89,9 @@ Functions that do network requests take an optional `fetchFn` so tests can pass 
 
 ```sh
 npm install          # install dev dependencies
-npm run typecheck    # strict type check
+npm run typecheck    # strict app and service-worker type checks
 npm test             # unit tests
-npm run build        # writes dist/index.html
+npm run build        # writes dist/index.html, the service worker, manifest and icons
 ```
 
 Validate every change with all three: `typecheck`, `test`, `build`. The agent has no network access to the radio, so live checks are left to the user.
