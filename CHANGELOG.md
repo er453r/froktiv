@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-11-16
+
 ### Added
 - Dockerfile that builds the page and serves it with a small nginx web server.
 - The app version is shown next to the page title.
