@@ -58,6 +58,22 @@ npm run typecheck   # strict TypeScript check (tsc --noEmit)
 npm test            # unit tests (node:test with a mocked fetch)
 ```
 
+## Versioning and releases
+
+The app version lives in one place: the `version` field of `package.json`. The build shows it next to the page title, and the newest released section in `CHANGELOG.md` must match it (a test checks this).
+
+To release:
+
+1. Add short notes for your changes under `## [Unreleased]` in `CHANGELOG.md`.
+2. Bump the version (with a clean git working tree):
+
+   ```sh
+   npm version patch   # or: minor, major
+   ```
+
+   This updates `package.json` and `package-lock.json`, moves the "Unreleased" notes under `## [x.y.z] - <date>`, and creates a commit and a `vx.y.z` tag.
+3. Push with tags: `git push --follow-tags`.
+
 ## Notes
 
 - If the browser can't read the radio's replies (CORS), the page shows "online, details unavailable" and still sends power, mode and volume changes.

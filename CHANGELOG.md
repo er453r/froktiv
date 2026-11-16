@@ -4,6 +4,8 @@
 
 ### Added
 - Dockerfile that builds the page and serves it with a small nginx web server.
+- The app version is shown next to the page title.
+- `npm version patch|minor|major` bumps the version and moves these "Unreleased" notes under the new version.
 
 ## [2.0.0] - 2026-11-16
 

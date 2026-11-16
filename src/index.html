@@ -52,11 +52,16 @@
       #status {
         min-height: 1.5em;
       }
+
+      .app-version {
+        font-size: 0.85em;
+        opacity: 0.7;
+      }
     </style>
   </head>
   <body>
     <main>
-      <h1>Radio Control</h1>
+      <h1>Radio Control <span id="app-version" class="app-version">v<!--APP_VERSION--></span></h1>
       <form id="radio-form">
         <label for="radio-ip">Radio IPv4 address</label>
         <input id="radio-ip" name="host" type="text" inputmode="decimal" autocomplete="off" placeholder="192.168.1.50">

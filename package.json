@@ -1,12 +1,13 @@
 {
   "name": "radio-fsapi-webpage",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "node scripts/build.mjs",
-    "test": "node scripts/test.mjs"
+    "test": "node scripts/test.mjs",
+    "version": "node scripts/version.mjs && git add CHANGELOG.md"
   },
   "devDependencies": {
     "esbuild": "^0.25.0",

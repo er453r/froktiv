@@ -58,6 +58,8 @@ src/validation.ts   # isValidHost (IPv4 + optional port), clampVolume
 src/throttle.ts     # throttleTrailing
 scripts/build.mjs   # esbuild bundle (IIFE, minified) inlined into dist/index.html
 scripts/test.mjs    # bundles tests/*.test.ts with esbuild and runs node --test
+scripts/changelog.mjs # releaseChangelog / latestReleasedVersion helpers (tested)
+scripts/version.mjs # npm "version" hook: moves CHANGELOG "Unreleased" notes to the new version
 tests/*.test.ts     # node:test unit tests with a mocked fetch
 ```
 
@@ -70,7 +72,8 @@ Functions that do network requests take an optional `fetchFn` so tests can pass 
 - Keep the output a single self-contained `dist/index.html` with no external references.
 - Keep DOM access in `main.ts`. Keep FSAPI, parsing and polling logic pure and testable.
 - Two-space indentation, single quotes, ES modules with `.js` import suffixes in `src/`.
-- Add a short, human-readable entry to `CHANGELOG.md` for user-visible changes.
+- Add a short, human-readable entry under `## [Unreleased]` in `CHANGELOG.md` for user-visible changes.
+- **Version:** the only source is `version` in `package.json`. `scripts/build.mjs` replaces `<!--APP_VERSION-->` in `src/index.html` with it. Never hardcode the version elsewhere. Release with `npm version patch|minor|major`, which also releases the changelog section; a test checks that the newest released `CHANGELOG.md` section matches `package.json`.
 
 ## Commands
 

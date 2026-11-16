@@ -7,10 +7,15 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const htmlPath = join(root, 'src/index.html');
 const outputPath = join(root, 'dist/index.html');
 const marker = '<!--APP_SCRIPT-->';
+const versionMarker = '<!--APP_VERSION-->';
 const html = await readFile(htmlPath, 'utf8');
+// package.json "version" is the single source of the app version.
+const { version } = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
 
-if (html.split(marker).length !== 2) {
-  throw new Error(`Expected exactly one ${marker} placeholder in src/index.html`);
+for (const placeholder of [marker, versionMarker]) {
+  if (html.split(placeholder).length !== 2) {
+    throw new Error(`Expected exactly one ${placeholder} placeholder in src/index.html`);
+  }
 }
 
 const result = await build({
@@ -28,4 +33,7 @@ if (bundle === undefined) {
 }
 
 await mkdir(dirname(outputPath), { recursive: true });
-await writeFile(outputPath, html.replace(marker, () => `<script>${bundle}</script>`));
+const page = html
+  .replace(versionMarker, () => version)
+  .replace(marker, () => `<script>${bundle}</script>`);
+await writeFile(outputPath, page);

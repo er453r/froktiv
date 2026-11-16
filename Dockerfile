@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
-COPY tsconfig.json ./
+COPY tsconfig.json CHANGELOG.md ./
 COPY scripts ./scripts
 COPY src ./src
 COPY tests ./tests
