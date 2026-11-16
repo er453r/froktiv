@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- Dockerfile that builds the page and serves it with a small nginx web server.
+
 ## [2.0.0] - 2026-11-16
 
 ### Added

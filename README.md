@@ -40,6 +40,17 @@ npx --yes serve dist              # then open http://localhost:3000
 
 Open the page from `file://` or `http://localhost`. A page served over HTTPS can't call the radio's plain-HTTP API.
 
+## Docker
+
+A multi-stage `Dockerfile` builds the page (install, typecheck, test, build) with Node and serves `dist/index.html` from a small `nginx:alpine-slim` image:
+
+```sh
+docker build -t radio-control .
+docker run --rm -p 8080:80 radio-control   # then open http://localhost:8080
+```
+
+Serve it over plain HTTP (not HTTPS) so the page can reach the radio.
+
 ## Test
 
 ```sh
