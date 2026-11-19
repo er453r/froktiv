@@ -1,25 +1,32 @@
 import { clampVolume } from './validation.js';
-import { parseFsapiStatus, parseFsapiValue, parseModeList, type RadioMode } from './fsapiXml.js';
+import {
+  parseFsapiStatus,
+  parseFsapiValue,
+  parseModeList,
+  parsePresetList,
+  type RadioMode,
+  type RadioPreset
+} from './fsapiXml.js';
 
 export interface RadioTarget {
   readonly host: string;
   readonly pin: string;
 }
 
-export type FsapiOp = 'GET' | 'SET' | 'LIST_GET_NEXT';
+export type FsapiOp = 'GET' | 'SET' | 'LIST_GET_NEXT' | 'LIST_SET';
 
 export function buildFsapiUrl(
   target: RadioTarget,
   op: FsapiOp,
   node: string,
-  params: Readonly<Record<string, string | number>> = {}
+  params: Readonly<Record<string, string | number>> = {},
+  listStartKey = -1
 ): string {
-  const queryParams = new URLSearchParams({ pin: target.pin });
-  for (const [key, value] of Object.entries(params)) {
-    queryParams.set(key, String(value));
-  }
-  const path = op === 'LIST_GET_NEXT' ? `${node}/-1` : node;
-  return `http://${target.host}/fsapi/${op}/${path}?${queryParams.toString()}`;
+  const query = [['pin', target.pin], ...Object.entries(params)]
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+    .join('&');
+  const path = op === 'LIST_GET_NEXT' ? `${node}/${listStartKey}` : node;
+  return `http://${target.host}/fsapi/${op}/${path}?${query}`;
 }
 
 export type HealthResult =
@@ -57,11 +64,12 @@ export type ReadResult<T> =
 
 async function readFsapiXml(
   target: RadioTarget,
-  op: 'GET' | 'LIST_GET_NEXT',
+  op: FsapiOp,
   node: string,
   params: Readonly<Record<string, string | number>>,
   fetchFn: typeof fetch,
-  timeoutMs: number
+  timeoutMs: number,
+  listStartKey = -1
 ): Promise<ReadResult<string>> {
   const controller = new AbortController();
   let timedOut = false;
@@ -71,7 +79,7 @@ async function readFsapiXml(
   }, timeoutMs);
 
   try {
-    const response = await fetchFn(buildFsapiUrl(target, op, node, params), { signal: controller.signal });
+    const response = await fetchFn(buildFsapiUrl(target, op, node, params, listStartKey), { signal: controller.signal });
     if (response.status === 403) {
       return { ok: false, reason: 'pin', detail: 'HTTP 403' };
     }
@@ -121,6 +129,77 @@ export async function getModes(target: RadioTarget, fetchFn: typeof fetch = fetc
     3000
   );
   return result.ok ? { ok: true, value: parseModeList(result.value) } : result;
+}
+
+export function getNavCaps(target: RadioTarget, fetchFn: typeof fetch = fetch): Promise<ReadResult<number>> {
+  return fsapiGetNumber(target, 'netRemote.nav.caps', fetchFn);
+}
+
+async function sendReadableFsapi(
+  target: RadioTarget,
+  op: 'SET' | 'LIST_SET',
+  node: string,
+  params: Readonly<Record<string, string | number>>,
+  fetchFn: typeof fetch
+): Promise<ReadResult<void>> {
+  const result = await readFsapiXml(target, op, node, params, fetchFn, 3000);
+  return result.ok ? { ok: true, value: undefined } : result;
+}
+
+export function enableNavigation(target: RadioTarget, fetchFn: typeof fetch = fetch): Promise<ReadResult<void>> {
+  return sendReadableFsapi(target, 'SET', 'netRemote.nav.state', { value: 1 }, fetchFn);
+}
+
+export async function getPresets(target: RadioTarget, fetchFn: typeof fetch = fetch): Promise<ReadResult<RadioPreset[]>> {
+  const presets: RadioPreset[] = [];
+  let listStartKey = -1;
+
+  for (let pageNumber = 0; pageNumber < 5; pageNumber += 1) {
+    const result = await readFsapiXml(
+      target,
+      'LIST_GET_NEXT',
+      'netRemote.nav.presets',
+      { maxItems: 40 },
+      fetchFn,
+      3000,
+      listStartKey
+    );
+    if (!result.ok) {
+      return result;
+    }
+
+    const page = parsePresetList(result.value);
+    presets.push(...page.presets);
+    const lastPreset = page.presets[page.presets.length - 1];
+    if (page.listEnd || lastPreset === undefined) {
+      break;
+    }
+    listStartKey = lastPreset.key;
+  }
+
+  return { ok: true, value: presets };
+}
+
+export function playPreset(target: RadioTarget, key: number, fetchFn: typeof fetch = fetch): Promise<ReadResult<void>> {
+  return sendReadableFsapi(target, 'SET', 'netRemote.nav.action.selectPreset', { value: key }, fetchFn);
+}
+
+export function savePreset(
+  target: RadioTarget,
+  key: number,
+  preset: { readonly name: string; readonly url: string; readonly type?: string },
+  fetchFn: typeof fetch = fetch
+): Promise<ReadResult<void>> {
+  return sendReadableFsapi(target, 'LIST_SET', 'netRemote.nav.presets', {
+    key,
+    name: preset.name,
+    type: preset.type ?? 'AirableRadio',
+    url: preset.url
+  }, fetchFn);
+}
+
+export function deletePreset(target: RadioTarget, key: number, fetchFn: typeof fetch = fetch): Promise<ReadResult<void>> {
+  return savePreset(target, key, { name: '', url: '' }, fetchFn);
 }
 
 async function sendFsapiSet(

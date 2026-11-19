@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { parseFsapiStatus, parseFsapiValue, parseModeList } from '../src/fsapiXml.ts';
+import { parseFsapiStatus, parseFsapiValue, parseModeList, parsePresetList } from '../src/fsapiXml.ts';
 
 test('parses FSAPI status codes', () => {
   assert.equal(parseFsapiStatus('<fsapiResponse><status>FS_OK</status></fsapiResponse>'), 'FS_OK');
@@ -30,4 +30,83 @@ test('parses valid modes and their selectable flags', () => {
   ]);
   assert.deepEqual(parseModeList(''), []);
   assert.deepEqual(parseModeList('<items><item key="invalid"></item></items>'), []);
+});
+
+test('parses the captured eight-slot preset reply from the radio', () => {
+  const xml = `<fsapiResponse>
+<status>FS_OK</status>
+<item key="0">
+<field name="name"><c8_array>Radio 357</c8_array></field>
+<field name="type"><c8_array>AirableRadio</c8_array></field>
+<field name="url"><c8_array>http://stream.rcs.revma.com/ye5kghkgcm0uv</c8_array></field>
+</item>
+<item key="1">
+<field name="name"><c8_array>LiSTNR - Lofi Study Beats</c8_array></field>
+<field name="type"><c8_array>AirableRadio</c8_array></field>
+<field name="url"><c8_array>http://sa46.scastream.com.au/lo-fi</c8_array></field>
+</item>
+<item key="2">
+<field name="name"><c8_array>Classic FM Movie Music Hall Of Fame</c8_array></field>
+<field name="type"><c8_array>AirableRadio</c8_array></field>
+<field name="url"><c8_array>http://media-the.musicradio.com/ClassicFM-M-Movies</c8_array></field>
+</item>
+<item key="3">
+<field name="name"><c8_array>RMF Classic</c8_array></field>
+<field name="type"><c8_array>AirableRadio</c8_array></field>
+<field name="url"><c8_array>http://rmfstream1.interia.pl:8000/rmf_classic</c8_array></field>
+</item>
+<item key="4">
+<field name="name"><c8_array>LiSTNR - Yacht Rock</c8_array></field>
+<field name="type"><c8_array>AirableRadio</c8_array></field>
+<field name="url"><c8_array>http://sa47.scastream.com.au/7yachtrock_32?sca3xx=1</c8_array></field>
+</item>
+<item key="5">
+<field name="name"><c8_array>LiSTNR - Grunge</c8_array></field>
+<field name="type"><c8_array>AirableRadio</c8_array></field>
+<field name="url"><c8_array>http://sa47.scastream.com.au/grunge</c8_array></field>
+</item>
+<item key="6">
+<field name="name"><c8_array>LiSTNR - Movie Hits</c8_array></field>
+<field name="type"><c8_array>AirableRadio</c8_array></field>
+<field name="url"><c8_array>http://sa47.scastream.com.au/movie-hits</c8_array></field>
+</item>
+<item key="7">
+<field name="name"><c8_array></c8_array></field>
+<field name="type"><c8_array></c8_array></field>
+<field name="url"><c8_array></c8_array></field>
+</item>
+<listend/>
+</fsapiResponse>`;
+
+  const result = parsePresetList(xml);
+  assert.equal(result.presets.length, 8);
+  assert.deepEqual(result.presets[0], {
+    key: 0,
+    position: 1,
+    name: 'Radio 357',
+    type: 'AirableRadio',
+    url: 'http://stream.rcs.revma.com/ye5kghkgcm0uv',
+    empty: false
+  });
+  assert.deepEqual(result.presets[7], {
+    key: 7,
+    position: 8,
+    name: '',
+    type: '',
+    url: '',
+    empty: true
+  });
+  assert.equal(result.listEnd, true);
+});
+
+test('parses preset entities and treats malformed lists as empty', () => {
+  const result = parsePresetList('<items><item key="0"><field name="name"><c8_array>Rock &amp; Roll</c8_array></field><field name="url"><c8_array>http://example.test/?a=1&amp;b=2</c8_array></field></item><listend/></items>');
+  assert.equal(result.presets[0]?.name, 'Rock & Roll');
+  assert.equal(result.presets[0]?.url, 'http://example.test/?a=1&b=2');
+  assert.equal(result.listEnd, true);
+  assert.deepEqual(parsePresetList(''), { presets: [], listEnd: false });
+  assert.deepEqual(parsePresetList('<item key="bad"><field name="name"><c8_array>x</c8_array></field></item>'), {
+    presets: [],
+    listEnd: false
+  });
 });

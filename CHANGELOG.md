@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added
+- Internet-radio presets table with radio-confirmed Play, Edit and Delete actions, plus support for saving stations into empty slots.
+
 ## [2.1.0] - 2026-11-16
 
 ### Added

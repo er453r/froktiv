@@ -61,6 +61,63 @@
         font-size: 0.85em;
         opacity: 0.7;
       }
+
+      #presets {
+        margin-top: 1.5rem;
+      }
+
+      .presets-header {
+        align-items: center;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .presets-header h2 {
+        font-size: 1.25rem;
+        margin: 0;
+      }
+
+      #preset-status {
+        min-height: 1.5em;
+      }
+
+      .preset-table-wrap {
+        overflow-x: auto;
+      }
+
+      #preset-table {
+        border-collapse: collapse;
+        min-width: 32rem;
+        width: 100%;
+      }
+
+      #preset-table th, #preset-table td {
+        border-bottom: 1px solid currentColor;
+        padding: 0.5rem 0.35rem;
+        text-align: left;
+      }
+
+      #preset-table .preset-url {
+        max-width: 16rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      #preset-dialog {
+        border: 1px solid currentColor;
+        border-radius: 0.5rem;
+        max-width: 32rem;
+        width: calc(100% - 2rem);
+      }
+
+      #preset-dialog::backdrop {
+        background: rgb(0 0 0 / 0.5);
+      }
+
+      #preset-dialog-error {
+        min-height: 1.5em;
+      }
     </style>
   </head>
   <body>
@@ -103,6 +160,40 @@
         <p>Radio volume: <span id="radio-volume-status">Unknown</span></p>
         <p>Last checked: <span id="last-checked">—</span></p>
       </section>
+      <section id="presets" class="status-panel" aria-labelledby="preset-heading">
+        <div class="presets-header">
+          <h2 id="preset-heading">Presets</h2>
+          <button id="preset-refresh" type="button" disabled>Refresh</button>
+        </div>
+        <p id="preset-status" role="status" aria-live="polite">Enter a valid IPv4 address to load presets.</p>
+        <div class="preset-table-wrap">
+          <table id="preset-table">
+            <thead>
+              <tr>
+                <th scope="col">Position</th>
+                <th scope="col">Name</th>
+                <th scope="col">URL</th>
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="preset-rows"></tbody>
+          </table>
+        </div>
+      </section>
+      <dialog id="preset-dialog" aria-labelledby="preset-dialog-heading">
+        <h2 id="preset-dialog-heading">Edit preset <span id="preset-dialog-position"></span></h2>
+        <p id="preset-dialog-error" role="alert" aria-live="assertive"></p>
+        <form id="preset-form" novalidate>
+          <label for="preset-name">Name</label>
+          <input id="preset-name" name="name" type="text" maxlength="128" autocomplete="off">
+          <label for="preset-url">URL</label>
+          <input id="preset-url" name="url" type="url" autocomplete="url">
+          <div class="control-row">
+            <button id="preset-save" type="submit">Save</button>
+            <button id="preset-cancel" type="button">Cancel</button>
+          </div>
+        </form>
+      </dialog>
       <p class="hint">Status replies are read when the radio allows browser access; if CORS blocks details, the page uses a reachability probe.</p>
       <p class="hint">Open this page from file:// or http://localhost; an HTTPS page cannot call the radio's plain-HTTP API.</p>
     </main>

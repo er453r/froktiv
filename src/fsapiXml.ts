@@ -15,7 +15,25 @@ export interface RadioMode {
   readonly selectable: boolean;
 }
 
+export interface RadioPreset {
+  readonly key: number;
+  readonly position: number;
+  readonly name: string;
+  readonly type: string;
+  readonly url: string;
+  readonly empty: boolean;
+}
+
+export interface PresetPage {
+  readonly presets: RadioPreset[];
+  readonly listEnd: boolean;
+}
+
 type FsapiValue = string | number;
+interface ListItem {
+  readonly key: number;
+  readonly content: string;
+}
 
 function decodeXml(value: string): string {
   return value.replace(/&(#x[\da-f]+|#\d+|amp|lt|gt|quot|apos);/gi, (entity, token: string) => {
@@ -82,8 +100,8 @@ function parseField(item: string, name: string): FsapiValue | null {
   return content === undefined ? null : parseTypedValue(content);
 }
 
-export function parseModeList(xml: string): RadioMode[] {
-  const modes: RadioMode[] = [];
+function parseListItems(xml: string): ListItem[] {
+  const items: ListItem[] = [];
   const itemPattern = /<item\b([^>]*)>([\s\S]*?)<\/item\s*>/gi;
   let match: RegExpExecArray | null;
 
@@ -101,6 +119,16 @@ export function parseModeList(xml: string): RadioMode[] {
       continue;
     }
 
+    items.push({ key, content });
+  }
+
+  return items;
+}
+
+export function parseModeList(xml: string): RadioMode[] {
+  const modes: RadioMode[] = [];
+
+  for (const { key, content } of parseListItems(xml)) {
     const idValue = parseField(content, 'id');
     const labelValue = parseField(content, 'label');
     const selectableValue = parseField(content, 'selectable');
@@ -114,4 +142,32 @@ export function parseModeList(xml: string): RadioMode[] {
   }
 
   return modes;
+}
+
+export function parsePresetList(xml: string): PresetPage {
+  const presets: RadioPreset[] = [];
+
+  for (const { key, content } of parseListItems(xml)) {
+    if (key < 0 || key >= Number.MAX_SAFE_INTEGER) {
+      continue;
+    }
+
+    const nameValue = parseField(content, 'name');
+    const typeValue = parseField(content, 'type');
+    const urlValue = parseField(content, 'url');
+    const name = nameValue === null ? '' : String(nameValue).trim();
+    presets.push({
+      key,
+      position: key + 1,
+      name,
+      type: typeValue === null ? '' : String(typeValue).trim(),
+      url: urlValue === null ? '' : String(urlValue).trim(),
+      empty: name === ''
+    });
+  }
+
+  return {
+    presets,
+    listEnd: /<listend\b[^>]*\/\s*>|<listend\b[^>]*>\s*<\/listend\s*>/i.test(xml)
+  };
 }

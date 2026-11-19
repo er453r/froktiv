@@ -8,6 +8,7 @@ Features:
 - A power on/off toggle.
 - A mode dropdown filled with the radio's own modes, with a number input as fallback.
 - A volume slider that follows the radio's volume.
+- An internet-radio presets table with play, edit, delete, and empty-slot support.
 
 ## Requirements
 
@@ -83,4 +84,4 @@ To release:
 ## Notes
 
 - If the browser can't read the radio's replies (CORS), the page shows "online, details unavailable" and still sends power, mode and volume changes.
-- With `no-cors` writes, the page can't confirm that a change was applied. The next status check shows the result.
+- Power, mode and volume writes use `no-cors`, so the page can't confirm those changes directly; preset play, edit and delete use readable requests and report the radio's result.
